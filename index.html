@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Digital Clock</title>
+    <style>
+        :root {
+            --neon-cyan: #00f0ff;
+            --neon-pink: #ff2d95;
+            --neon-purple: #b347ea;
+            --bg-dark: #0a0a0f;
+            --glass-bg: rgba(15, 15, 30, 0.55);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: var(--bg-dark);
+            font-family: 'Orbitron', 'Segoe UI', 'Courier New', monospace;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* ---- Animated Grid Background ---- */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background-image:
+                linear-gradient(rgba(0, 240, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 240, 255, 0.04) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridShift 8s linear infinite;
+        }
+
+        @keyframes gridShift {
+            0% {
+                background-position: 0 0, 0 0;
+            }
+            100% {
+                background-position: 50px 50px, -50px 50px;
+            }
+        }
+
+        /* ---- Floating Particles ---- */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            will-change: transform, opacity;
+            mix-blend-mode: screen;
+            opacity: 0;
+        }
+
+        .particle::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: inherit;
+            filter: blur(0.2px);
+        }
+
+        /* ---- Main Clock Container ---- */
+        .clock-wrapper {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 25px;
+        }
+
+        /* ---- Outer Glow Ring ---- */
+        .outer-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 520px;
+            height: 520px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(0, 240, 255, 0.15);
+            box-shadow:
+                0 0 60px rgba(0, 240, 255, 0.08),
+                0 0 120px rgba(180, 70, 234, 0.06),
+                inset 0 0 60px rgba(0, 240, 255, 0.03);
+            animation: ringPulse 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .outer-ring:nth-child(2) {
+            width: 440px;
+            height: 440px;
+            border-color: rgba(255, 45, 149, 0.12);
+            box-shadow:
+                0 0 50px rgba(255, 45, 149, 0.06),
+                0 0 100px rgba(180, 70, 234, 0.04);
+            animation: ringPulse 4s ease-in-out 1.5s infinite;
+        }
+
+        @keyframes ringPulse {
+            0%,
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.7;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.06);
+                opacity: 1;
+            }
+        }
+
+        /* ---- Glass Card ---- */
+        .clock-card {
+            position: relative;
+            background: var(--glass-bg);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 28px;
+            padding: 50px 60px;
+            box-shadow:
+                0 25px 60px rgba(0, 0, 0, 0.5),
+                0 0 80px rgba(0, 240, 255, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.04);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            z-index: 10;
+            transition: box-shadow 0.5s ease;
+            animation: cardFloat 6s ease-in-out infinite;
+        }
+
+        @keyframes cardFloat {
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+            25% {
+                transform: translateY(-6px);
+            }
+            75% {
+                transform: translateY(4px);
+            }
+        }
+
+        .clock-card:hover {
+            box-shadow:
+                0 30px 70px rgba(0, 0, 0, 0.6),
+                0 0 120px rgba(0, 240, 255, 0.18),
+                0 0 200px rgba(255, 45, 149, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        }
+
+        /* ---- Time Display ---- */
+        .time-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+
+        .digit-group {
+            display: flex;
+            gap: 4px;
+        }
+
+        .digit {
+            position: relative;
+            font-size: 110px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            color: #fff;
+            text-shadow:
+                0 0 10px var(--neon-cyan),
+                0 0 30px var(--neon-cyan),
+                0 0 60px var(--neon-cyan),
+                0 0 100px var(--neon-cyan),
+                0 0 160px rgba(0, 240, 255, 0.5),
+                0 4px 8px rgba(0, 0, 0, 0.6);
+            line-height: 1;
+            transition: text-shadow 0.3s ease;
+            min-width: 70px;
+            text-align: center;
+        }
+
+        /* ---- Colon Separator ---- */
+        .colon {
+            font-size: 90px;
+            font-weight: 900;
+            color: var(--neon-pink);
+            text-shadow:
+                0 0 12px var(--neon-pink),
+                0 0 35px var(--neon-pink),
+                0 0 70px var(--neon-pink),
+                0 0 120px rgba(255, 45, 149, 0.6);
+            animation: colonBlink 1s step-end infinite;
+            line-height: 1;
+            padding-bottom: 8px;
+        }
+
+        @keyframes colonBlink {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.15;
+            }
+        }
+
+        /* ---- AM/PM & Seconds ---- */
+        .ampm-seconds {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+            margin-left: 8px;
+            padding-bottom: 8px;
+        }
+
+        .ampm {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--neon-purple);
+            text-shadow:
+                0 0 8px var(--neon-purple),
+                0 0 20px var(--neon-purple),
+                0 0 40px rgba(179, 71, 234, 0.6);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            background: rgba(179, 71, 234, 0.08);
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(179, 71, 234, 0.2);
+        }
+
+        .seconds-dot {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--neon-cyan);
+            text-shadow:
+                0 0 8px var(--neon-cyan),
+                0 0 20px var(--neon-cyan);
+            letter-spacing: 2px;
+        }
+
+        /* ---- Date Display ---- */
+        .date-display {
+            font-size: 18px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.75);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.03);
+            padding: 12px 28px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* ---- Live Status Row ---- */
+        .status-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.04);
+            color: rgba(255, 255, 255, 0.82);
+        }
+
+        .status-pill::before {
+            content: '';
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--neon-cyan);
+            box-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        .status-pill.secondary::before {
+            background: var(--neon-pink);
+            box-shadow: 0 0 10px var(--neon-pink);
+        }
+
+        .status-pill.tertiary::before {
+            background: var(--neon-purple);
+            box-shadow: 0 0 10px var(--neon-purple);
+        }
+
+        .progress-track {
+            width: min(100%, 340px);
+            height: 6px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-pink));
+            box-shadow: 0 0 18px rgba(0, 240, 255, 0.45);
+            transition: width 0.35s ease;
+        }
+
+        /* ---- Glow Reflection ---- */
+        .reflection {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%) rotateX(50deg) scaleY(0.6);
+            font-size: 110px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            color: transparent;
+            background: linear-gradient(to bottom,
+                    rgba(0, 240, 255, 0.15),
+                    rgba(0, 240, 255, 0.01));
+            -webkit-background-clip: text;
+            background-clip: text;
+            pointer-events: none;
+            filter: blur(6px);
+            z-index: -1;
+            white-space: nowrap;
+        }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 700px) {
+            .digit {
+                font-size: 55px;
+                min-width: 38px;
+            }
+            .colon {
+                font-size: 44px;
+            }
+            .clock-card {
+                padding: 30px 25px;
+                border-radius: 20px;
+            }
+            .outer-ring {
+                width: 300px;
+                height: 300px;
+            }
+            .outer-ring:nth-child(2) {
+                width: 260px;
+                height: 260px;
+            }
+            .date-display {
+                font-size: 13px;
+                letter-spacing: 2px;
+                padding: 10px 18px;
+            }
+            .ampm {
+                font-size: 16px;
+                letter-spacing: 2px;
+                padding: 3px 7px;
+            }
+            .seconds-dot {
+                font-size: 20px;
+            }
+            .reflection {
+                font-size: 55px;
+                bottom: -20px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .digit {
+                font-size: 40px;
+                min-width: 28px;
+            }
+            .colon {
+                font-size: 32px;
+            }
+            .clock-card {
+                padding: 20px 16px;
+                border-radius: 16px;
+                gap: 12px;
+            }
+            .outer-ring {
+                width: 220px;
+                height: 220px;
+            }
+            .outer-ring:nth-child(2) {
+                width: 190px;
+                height: 190px;
+            }
+            .date-display {
+                font-size: 11px;
+                letter-spacing: 1.5px;
+                padding: 8px 14px;
+            }
+            .ampm {
+                font-size: 13px;
+            }
+            .seconds-dot {
+                font-size: 16px;
+            }
+            .time-display {
+                gap: 4px;
+            }
+            .ampm-seconds {
+                margin-left: 4px;
+            }
+
+            .status-pill {
+                font-size: 10px;
+                letter-spacing: 1.5px;
+                padding: 7px 10px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+
+            .bg-grid,
+            .particle,
+            .outer-ring,
+            .clock-card,
+            .colon {
+                animation: none !important;
+            }
+        }
+    </style>
+
+    <!-- Google Font: Orbitron for that futuristic tech look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Background Grid -->
+    <div class="bg-grid"></div>
+
+    <!-- Particle Container -->
+    <div class="particles" id="particlesContainer"></div>
+
+    <!-- Clock Wrapper -->
+    <div class="clock-wrapper">
+        <!-- Decorative Rings -->
+        <div class="outer-ring"></div>
+        <div class="outer-ring"></div>
+
+        <!-- Clock Card -->
+        <div class="clock-card" id="clockCard">
+            <!-- Time -->
+            <div class="time-display" id="timeDisplay" aria-label="Current local time">
+                <div class="digit-group">
+                    <span class="digit" id="hour1">0</span>
+                    <span class="digit" id="hour2">0</span>
+                </div>
+                <span class="colon">:</span>
+                <div class="digit-group">
+                    <span class="digit" id="min1">0</span>
+                    <span class="digit" id="min2">0</span>
+                </div>
+                <div class="ampm-seconds">
+                    <span class="ampm" id="ampm">AM</span>
+                    <span class="seconds-dot" id="seconds">00</span>
+                </div>
+            </div>
+            <!-- Reflection -->
+            <span class="reflection" id="reflectionText">00:00</span>
+            <!-- Date -->
+            <div class="date-display" id="dateDisplay"></div>
+            <div class="status-row" aria-label="Clock status">
+                <span class="status-pill" id="liveStatus">LIVE</span>
+                <span class="status-pill secondary" id="timezoneLabel">LOCAL TIME</span>
+                <span class="status-pill tertiary" id="syncLabel">SYNCED</span>
+            </div>
+            <div class="progress-track" aria-hidden="true">
+                <div class="progress-fill" id="secondProgress"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ---- DOM Elements ----
+        const hour1El = document.getElementById('hour1');
+        const hour2El = document.getElementById('hour2');
+        const min1El = document.getElementById('min1');
+        const min2El = document.getElementById('min2');
+        const secondsEl = document.getElementById('seconds');
+        const ampmEl = document.getElementById('ampm');
+        const dateDisplay = document.getElementById('dateDisplay');
+        const reflectionText = document.getElementById('reflectionText');
+        const clockCard = document.getElementById('clockCard');
+        const particlesContainer = document.getElementById('particlesContainer');
+        const secondProgress = document.getElementById('secondProgress');
+        const timezoneLabel = document.getElementById('timezoneLabel');
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const forceSnowfall = true;
+
+        const snowflakes = [];
+        const mouse = {
+            x: window.innerWidth / 2,
+            y: window.innerHeight / 2,
+            active: false
+        };
+
+        // ---- Create Colorful Snowfall ----
+        function createSnowflakes() {
+            const count = prefersReducedMotion && !forceSnowfall ? 32 : 130;
+            const colors = ['#00f0ff', '#ff2d95', '#b347ea', '#7df9ff', '#ff6eb4', '#ffffff', '#ffd166'];
+            for (let i = 0; i < count; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+
+                const size = Math.random() * 5 + 3;
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const speed = 0.55 + Math.random() * 1.55;
+                const drift = (Math.random() - 0.5) * 0.95;
+                const sway = 0.6 + Math.random() * 1.8;
+
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.background = `radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95), ${color} 55%, rgba(255,255,255,0.08) 100%)`;
+                particle.style.boxShadow = `0 0 ${size * 4}px ${color}, 0 0 ${size * 10}px rgba(255,255,255,0.18)`;
+
+                const startX = Math.random() * window.innerWidth;
+                const startY = Math.random() * window.innerHeight;
+
+                snowflakes.push({
+                    element: particle,
+                    x: startX,
+                    y: startY,
+                    baseX: startX,
+                    size,
+                    speed,
+                    drift,
+                    sway,
+                    phase: Math.random() * Math.PI * 2,
+                    color
+                });
+
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        function resetSnowflake(flake) {
+            flake.x = Math.random() * window.innerWidth;
+            flake.y = -20 - Math.random() * 120;
+            flake.baseX = flake.x;
+            flake.speed = 0.4 + Math.random() * 1.25;
+            flake.drift = (Math.random() - 0.5) * 0.7;
+            flake.sway = 0.6 + Math.random() * 1.8;
+            flake.phase = Math.random() * Math.PI * 2;
+        }
+
+        function animateSnowfall() {
+            const attractionRadius = 180;
+            const attractionStrength = 0.1;
+
+            for (const flake of snowflakes) {
+                flake.phase += 0.02 * flake.sway;
+
+                flake.y += flake.speed;
+                flake.x += flake.drift + Math.sin(flake.phase) * 0.55;
+
+                if (mouse.active) {
+                    const dx = mouse.x - flake.x;
+                    const dy = mouse.y - flake.y;
+                    const distance = Math.hypot(dx, dy);
+
+                    if (distance < attractionRadius) {
+                        const force = (1 - distance / attractionRadius) * attractionStrength;
+                        flake.x += dx * force;
+                        flake.y += dy * force * 0.65;
+                    }
+                }
+
+                if (flake.y > window.innerHeight + 40 || flake.x < -40 || flake.x > window.innerWidth + 40) {
+                    resetSnowflake(flake);
+                }
+
+                flake.element.style.opacity = '0.9';
+                flake.element.style.transform = `translate3d(${flake.x}px, ${flake.y}px, 0) scale(${1 + Math.sin(flake.phase) * 0.16})`;
+            }
+
+            requestAnimationFrame(animateSnowfall);
+        }
+
+        createSnowflakes();
+
+        if (!prefersReducedMotion || forceSnowfall) {
+            animateSnowfall();
+        } else {
+            for (const flake of snowflakes) {
+                flake.element.style.opacity = '0.6';
+                flake.element.style.transform = `translate3d(${flake.x}px, ${flake.y}px, 0) scale(1)`;
+            }
+        }
+
+        // ---- Update Clock ----
+        function updateClock() {
+            const now = new Date();
+            let hours = now.getHours();
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+
+            // Convert to 12-hour format
+            const displayHours = hours % 12 || 12;
+            const hourStr = String(displayHours).padStart(2, '0');
+            const minStr = String(minutes).padStart(2, '0');
+            const secStr = String(seconds).padStart(2, '0');
+            const progressPercent = (seconds / 60) * 100;
+
+            // Update digits
+            hour1El.textContent = hourStr[0];
+            hour2El.textContent = hourStr[1];
+            min1El.textContent = minStr[0];
+            min2El.textContent = minStr[1];
+            secondsEl.textContent = secStr;
+            ampmEl.textContent = ampm;
+
+            // Update reflection
+            reflectionText.textContent = `${hourStr}:${minStr}`;
+            secondProgress.style.width = `${progressPercent}%`;
+
+            // Update date
+            const days = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+            const months = [
+                'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+                'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+            ];
+            const dayName = days[now.getDay()];
+            const monthName = months[now.getMonth()];
+            const date = now.getDate();
+            const year = now.getFullYear();
+            dateDisplay.textContent = `${dayName} · ${monthName} ${String(date).padStart(2, '0')} · ${year}`;
+
+            const offsetMinutes = -now.getTimezoneOffset();
+            const offsetSign = offsetMinutes >= 0 ? '+' : '-';
+            const absoluteOffsetHours = Math.floor(Math.abs(offsetMinutes) / 60);
+            const absoluteOffsetMinutes = Math.abs(offsetMinutes) % 60;
+            timezoneLabel.textContent = `UTC${offsetSign}${String(absoluteOffsetHours).padStart(2, '0')}:${String(absoluteOffsetMinutes).padStart(2, '0')}`;
+
+            // Subtle glow intensity shift based on seconds (gives a "breathing" feel)
+            const glowFactor = 0.7 + 0.3 * Math.sin(seconds * Math.PI / 30);
+            clockCard.style.boxShadow = `
+                0 25px 60px rgba(0,0,0,0.5),
+                0 0 80px rgba(0,240,255,${glowFactor * 0.08}),
+                inset 0 1px 0 rgba(255,255,255,0.04)
+            `;
+        }
+
+        // ---- Initialize & Update Every Second ----
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // ---- Mouse Parallax Effect on Rings + Snow Attraction ----
+        document.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            mouse.active = true;
+
+            const x = (e.clientX / window.innerWidth - 0.5) * 20;
+            const y = (e.clientY / window.innerHeight - 0.5) * 20;
+            const rings = document.querySelectorAll('.outer-ring');
+            if (rings[0]) {
+                rings[0].style.transform = `translate(calc(-50% + ${x * 0.6}px), calc(-50% + ${y * 0.6}px))`;
+            }
+            if (rings[1]) {
+                rings[1].style.transform = `translate(calc(-50% + ${x * -0.4}px), calc(-50% + ${y * -0.4}px))`;
+            }
+        });
+
+        document.addEventListener('mouseleave', () => {
+            mouse.active = false;
+        });
+
+        // ---- Touch support for mobile ----
+        document.addEventListener('touchmove', (e) => {
+            const touch = e.touches[0];
+            mouse.x = touch.clientX;
+            mouse.y = touch.clientY;
+            mouse.active = true;
+            const x = (touch.clientX / window.innerWidth - 0.5) * 20;
+            const y = (touch.clientY / window.innerHeight - 0.5) * 20;
+            const rings = document.querySelectorAll('.outer-ring');
+            if (rings[0]) {
+                rings[0].style.transform = `translate(calc(-50% + ${x * 0.6}px), calc(-50% + ${y * 0.6}px))`;
+            }
+            if (rings[1]) {
+                rings[1].style.transform = `translate(calc(-50% + ${x * -0.4}px), calc(-50% + ${y * -0.4}px))`;
+            }
+        }, { passive: true });
+
+        window.addEventListener('resize', () => {
+            mouse.x = Math.min(mouse.x, window.innerWidth);
+            mouse.y = Math.min(mouse.y, window.innerHeight);
+        });
+
+        console.log('%c🕐 Neon Digital Clock Active %c| %cDesigned with ❤️',
+            'color: #00f0ff; font-size: 16px;',
+            '',
+            'color: #ff2d95;');
+        console.log('%c✨ Hover over the clock for extra glow!',
+            'color: #b347ea; font-style: italic;');
+    </script>
+</body>
+</html>
